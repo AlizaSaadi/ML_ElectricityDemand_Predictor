@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Demand Forecasting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .plot-container {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .metrics-card {
+            background-color: #444;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.05);
+            color: #fff;
+        }
+        .form-container {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        body {
+            background-color: #000;
+            padding-top: 20px;
+            color: #fff;
+        }
+        h1, h2, h3 {
+            color: #f8f9fa;
+        }
+        .cluster-size-badge {
+            font-size: 0.9rem;
+            margin-right: 5px;
+            background-color: #495057 !important;
+        }
+        .model-comparison {
+            margin-top: 20px;
+        }
+        .table {
+            color: #fff;
+        }
+        .form-label {
+            color: #f8f9fa;
+        }
+        .form-control, .form-select {
+            background-color: #555;
+            color: #fff;
+            border: 1px solid #666;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #666;
+            color: #fff;
+            border-color: #777;
+            box-shadow: 0 0 0 0.25rem rgba(130, 130, 130, 0.25);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .img-fluid {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Energy Demand Forecasting</h1>
+
+        <div class="form-container">
+            <form method="POST" action="/">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="city" class="form-label">City</label>
+                        <select class="form-select" id="city" name="city">
+                            <option value="all">All Cities</option>
+                            {% for city in cities %}
+                                <option value="{{ city }}" {% if selected_city == city %}selected{% endif %}>{{ city.capitalize() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="k_clusters" class="form-label">Clusters (k)</label>
+                        <select class="form-select" id="k_clusters" name="k_clusters">
+                            {% for k in range(2, 11) %}
+                                <option value="{{ k }}" {% if k_clusters == k %}selected{% endif %}>{{ k }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-primary">Update Forecast</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        {% if plot_url %}
+        <div class="plot-container">
+            <h2>Forecast Comparison</h2>
+            <img src="data:image/png;base64,{{ plot_url }}" class="img-fluid" alt="Forecast Comparison">
+            
+            <div class="model-comparison">
+                <div class="row">
+                    {% if naive_metrics %}
+                    <div class="col-md-6">
+                        <div class="metrics-card">
+                            <h3>Naive Model Metrics</h3>
+                            <table class="table">
+                                <tr>
+                                    <th>MAE</th>
+                                    <td>{{ "%.2f"|format(naive_metrics.MAE) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>RMSE</th>
+                                    <td>{{ "%.2f"|format(naive_metrics.RMSE) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>MAPE</th>
+                                    <td>{{ "%.2f"|format(naive_metrics.MAPE) }}%</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if xgb_metrics %}
+                    <div class="col-md-6">
+                        <div class="metrics-card">
+                            <h3>XGBoost Model Metrics</h3>
+                            <table class="table">
+                                <tr>
+                                    <th>MAE</th>
+                                    <td>{{ "%.2f"|format(xgb_metrics.MAE) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>RMSE</th>
+                                    <td>{{ "%.2f"|format(xgb_metrics.RMSE) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>MAPE</th>
+                                    <td>{{ "%.2f"|format(xgb_metrics.MAPE) }}%</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if pca_plot_url %}
+        <div class="plot-container">
+            <h2>PCA Visualization</h2>
+            <img src="data:image/png;base64,{{ pca_plot_url }}" class="img-fluid" alt="PCA Visualization">
+            <p class="mt-2">This visualization shows the data projected onto the first two principal components, colored by city.</p>
+        </div>
+        {% endif %}
+        
+        {% if cluster_plot_url %}
+        <div class="plot-container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2>Cluster Visualization</h2>
+                    <img src="data:image/png;base64,{{ cluster_plot_url }}" class="img-fluid" alt="Cluster Visualization">
+                </div>
+                <div class="col-md-4">
+                    <h3>Cluster Metrics</h3>
+                    <table class="table">
+                        <tr>
+                            <th>Silhouette Score</th>
+                            <td>{{ "%.4f"|format(cluster_metrics.silhouette) if cluster_metrics.silhouette is defined else "N/A" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Calinski-Harabasz</th>
+                            <td>{{ "%.2f"|format(cluster_metrics.calinski_harabasz) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Davies-Bouldin</th>
+                            <td>{{ "%.4f"|format(cluster_metrics.davies_bouldin) }}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3>Cluster Sizes</h3>
+                    <div class="d-flex flex-wrap">
+                        {% for cluster, size in cluster_sizes.items() %}
+                            <span class="badge bg-primary cluster-size-badge mb-2">
+                                Cluster {{ cluster }}: {{ size }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if feature_plot_url %}
+        <div class="plot-container">
+            <h2>Feature Importance</h2>
+            <img src="data:image/png;base64,{{ feature_plot_url }}" class="img-fluid" alt="Feature Importance">
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
