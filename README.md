@@ -1,4 +1,4 @@
-A machine learning-powered web application designed to forecast hourly electricity demand across multiple U.S. cities. The system integrates time series forecasting with clustering analysis to reveal demand-weather patterns and provides an interactive dashboard for visual insights.
+Machine learning-powered web app to forecast hourly electricity demand across multiple cities. Integrates time series forecasting with clustering analysis to reveal demand-weather patterns and provides an interactive dashboard for visual insights.
 
 ---
 
